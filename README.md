@@ -113,3 +113,29 @@ printf("\n");
 ```
 
 - finally you define strings as `char str[5] = "Hello";`
+
+## Lesson 6
+
+- you define blocks wherever you want
+  ```c
+  int main() {
+    int i = 8;
+    {
+      int i = 5;
+      printf("%d", i); // i is 5
+    }
+    printf("%d", i); // i is 8
+  }
+  ```
+- you can use `goto;again`
+  - you can replicate a behaviour similar to basic, as `again` is just a label
+  ```c
+  int main() {
+    l10: printf("infinite loop\n");
+    l20: goto l10;
+    return 0;
+  }
+  ```
+- combininig `if` with `goto` you can achieve anything
+- you can create `while` loops with `if` only, by using recursion
+  - ALERT: using recursion consumes a lot of memory as each recursive call adds to the stack
