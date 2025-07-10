@@ -89,3 +89,27 @@ long l = 10; // mostly the same as the processor
 - interesting exercise about recreating the `clear` function from the hexdump:
   - `clear | hexdump -C` to get the hexadecimal representation of the `clear` instruction
   - send that to `printf` to achieve the same `printf("\x1b\x5b\x33\x4a\x1b\x5b\x48\x1b\x5b\x32\x4a");`
+
+## Lesson 5
+
+- Use `-Wall -W -O2` when compiling to get detailed warnings and messages
+- `char c = 'A'` using `''` turns A into the respective ASCII decimal representation. In C everything is a number
+- strings are `int` arrays, made of single 1-byte `char`
+- `0` is used as a `null terminator` to mark the string as complete
+  - if you terminate a literal string array with something else than 0, the program will print gibberish
+
+```c
+char str[6] = {'h', 'e', 'l', 'l', 'o', 0};
+printf("%s\n", str);
+return 0;
+
+// which means we can print strings char by char
+int i = 0;
+while (str[i] != 0) {
+    printf("%c", str[i]);
+    i++;
+}
+printf("\n");
+```
+
+- finally you define strings as `char str[5] = "Hello";`
