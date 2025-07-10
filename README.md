@@ -62,3 +62,30 @@ int main() {
   }
   ```
 - with `printf` and in other functions, C does not handle all possible variable types. It promotes many of the types to the superst (i.e. `char` and `short` to `int`, `float` to `double`), meaning that subsets get converted to their superset and this way the functions need to handle a smaller set of types.
+
+## Lesson 4
+
+- types in C, as opposed to most other strictly typed languages, do not explicitely define how big the value ranges are. This is because C was created to be ran on all and any device, so it was never included in the specs what the value ranges shoud be
+
+  - on `int` you can use `sizeof` to get the bytes size: `int x = 0; printf("int is %lu bytes\n", sizeof(x))`
+  - to get the actual values you can include `limits`
+
+  ```c
+  #include <limits.h>
+
+  int main() {
+    int x = 0;
+    printf("int min: %d, int max: %d\n", INT_MIN, INT_MAX);
+  }
+  ```
+
+```c
+char c = 1; // 8 bit, 1 byte
+short s = 2000; // 16 bit, 8 2 byte
+int x = 5; // 32 bit, 4 bytes
+long l = 10; // mostly the same as the processor
+```
+
+- interesting exercise about recreating the `clear` function from the hexdump:
+  - `clear | hexdump -C` to get the hexadecimal representation of the `clear` instruction
+  - send that to `printf` to achieve the same `printf("\x1b\x5b\x33\x4a\x1b\x5b\x48\x1b\x5b\x32\x4a");`
