@@ -139,3 +139,77 @@ printf("\n");
 - combininig `if` with `goto` you can achieve anything
 - you can create `while` loops with `if` only, by using recursion
   - ALERT: using recursion consumes a lot of memory as each recursive call adds to the stack
+  - you can use this to see that `start` and `end` keep changing address `printf("start: %p; end: %p\n", &start, &end);`
+
+## Lesson 7
+
+- building upon the recursion from last lesson, we can easily turn recursive code into iterative code by using `goto` and freeing a lot of memory
+
+  ```c
+  void count(int start, int end) {
+  iterate: // add label
+    if (start > end) return;
+    printf("%d\n", start);
+    // count(start + 1, end); gets removed
+    start += 1; // replace start + 1
+    printf("start: %p; end: %p\n", &start, &end);
+    goto iterate; // start from the top
+  }
+  ```
+
+  - checking the printf you can see `start` and `end` are always assigned to the same address: less memory usage!
+
+- `goto` is useful but you usually want to leverage higher level paradigms (while, for,...)
+- for loops are syntactic sugar around while loops
+- you can strip away stuff from the for loop definition until you are left with a `while(1)`, which is the infinite loop in C
+
+  ```c
+  for (int i = 0; i < 10; i++) {
+    printf("%d\n", i);
+  }
+
+  int i = 0;
+  for (; i < 10; i++) {
+    printf("%d\n", i);
+  }
+
+  int i = 0;
+  for (;; i++) {
+    if (i >= 10) break;
+    printf("%d\n", i);
+  }
+
+  int i = 0;
+  for (;;) {
+    if (i >= 10) break;
+    printf("%d\n", i);
+    i++;
+  }
+
+  int i = 0;
+  while (1) {
+    if (i >= 10) break;
+    printf("%d\n", i);
+    i++;
+  }
+  ```
+
+- C does not handle true or false, only 0 or 1, only integers
+- you can't define variables within a `switch` statement
+  - but remember we can create blocks anywhere!
+  ```c
+  int i = 0;
+  switch (int) {
+    case 5: 
+      int x = 10; // won't work
+      break;
+    case 7:
+    {
+      int x = 10 // DOES WORK!
+      break;
+    }
+  }
+  ```
+
+
+    
