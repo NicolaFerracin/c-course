@@ -196,11 +196,13 @@ printf("\n");
 
 - C does not handle true or false, only 0 or 1, only integers
 - you can't define variables within a `switch` statement
+
   - but remember we can create blocks anywhere!
+
   ```c
   int i = 0;
   switch (int) {
-    case 5: 
+    case 5:
       int x = 10; // won't work
       break;
     case 7:
@@ -211,5 +213,12 @@ printf("\n");
   }
   ```
 
+  ## Lesson 9
 
-    
+  - initializing a pointer to `0`, means you are using the null pointer, which is the same as `NULL`, a special address where nothing is stored
+  - when definining a pointer, you need to set the type of the value stored in the pointer
+
+  ```c
+  int x = 5;
+  int *y = &x; // because y points to an address where an int is stored
+  ```
