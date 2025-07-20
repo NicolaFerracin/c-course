@@ -222,3 +222,50 @@ printf("\n");
   int x = 5;
   int *y = &x; // because y points to an address where an int is stored
   ```
+
+  ## Lesson 10
+
+  More about pointers
+
+  - once you have a pointer to the address where a variable is stored, you can access the variable value with `p[0] = <new-value>`, which is the equal to `*p = <new-value>`
+  - `p[0]` or `*p` is called "dereferencing"
+  - you can find the pointer to a pointer by doing `int **z = &y`, where `int *y = &x` and `int x = 5`
+  - pointers are like long: they usually are the same size as the CPU address width (4 bytes on 32-bit systems, 8 bytes on 64-bit)
+  - you can do casting with `(int)sizeof(x)` (as the size is a long but we are printing an int)
+  - when defining strings you use arrays of char. The name of the array can be both used as a pointer and as a reference to the string:
+
+  ```c
+  char hello[] = "Hello world!";
+
+  // hello is a pointer itself, no need to add & in front
+  printf("String stored at %p with value %s\n", hello, hello);
+
+  // because of the above we can also store it in a variable like this. NOTE we are not doing &hello
+  char *p = hello;
+  ```
+
+  - the pointer to a string points to the address of the first character. I can use dereferencing to get any char from the string
+
+  ```c
+  printf("%c %c %c\n", p[0], p[1], p[2]);         // array-style
+  printf("%c %c %c\n", *p, *(p+1), *(p+2));       // pointer arithmetic
+  ```
+
+  - I can also define a pointer with a different type. Doing `char *p` would create a pointer to a single char byte. But I could also do `short *s` which would point to the first 2 bytes
+
+  ```c
+  char hello[] = "Hello world!";
+  char *p = hello;
+  printf("1 byte pointer, %c\n", *p); // H
+
+  short *s = (short*)hello; // using casting to short* to avoid warnings
+  printf("2 bytes pointer, %d\n", *s); // 25928 - contrary to %c, with the short pointer, we get the actual integer stored in the 2 bytes that we are pointing to
+  // 'H' is 72 and 'e' is 101 => 72 * 1 + 101 * 256 (1 byte = 256 bit) => 25928
+  // we multiply 256 because we need to shift once (1 << 8)
+
+  // another cool thing: incrementing the pointer, multiplies the increment by the base size
+  p++; // will point to 'e'
+  s++; // will not point to 'el' but will point to 'll'
+  printf("1 byte pointer, %c\n", *p); // e
+  printf("2 bytes pointer, %d\n", *s); // 27756 => l = 108 => 108 + 108*256 => 27756!
+  ```
