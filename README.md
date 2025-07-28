@@ -79,12 +79,12 @@ int main() {
   }
   ```
 
-```c
-char c = 1; // 8 bit, 1 byte
-short s = 2000; // 16 bit, 8 2 byte
-int x = 5; // 32 bit, 4 bytes
-long l = 10; // mostly the same as the processor
-```
+  ```c
+  char c = 1; // 8 bit, 1 byte
+  short s = 2000; // 16 bit, 8 2 byte
+  int x = 5; // 32 bit, 4 bytes
+  long l = 10; // mostly the same as the processor
+  ```
 
 - interesting exercise about recreating the `clear` function from the hexdump:
   - `clear | hexdump -C` to get the hexadecimal representation of the `clear` instruction
@@ -98,19 +98,19 @@ long l = 10; // mostly the same as the processor
 - `0` is used as a `null terminator` to mark the string as complete
   - if you terminate a literal string array with something else than 0, the program will print gibberish
 
-```c
-char str[6] = {'h', 'e', 'l', 'l', 'o', 0};
-printf("%s\n", str);
-return 0;
+    ```c
+    char str[6] = {'h', 'e', 'l', 'l', 'o', 0};
+    printf("%s\n", str);
+    return 0;
 
-// which means we can print strings char by char
-int i = 0;
-while (str[i] != 0) {
-    printf("%c", str[i]);
-    i++;
-}
-printf("\n");
-```
+    // which means we can print strings char by char
+    int i = 0;
+    while (str[i] != 0) {
+        printf("%c", str[i]);
+        i++;
+    }
+    printf("\n");
+    ```
 
 - finally you define strings as `char str[5] = "Hello";`
 
@@ -213,26 +213,26 @@ printf("\n");
   }
   ```
 
-  ## Lesson 9
+## Lesson 9
 
-  - initializing a pointer to `0`, means you are using the null pointer, which is the same as `NULL`, a special address where nothing is stored
-  - when definining a pointer, you need to set the type of the value stored in the pointer
+- initializing a pointer to `0`, means you are using the null pointer, which is the same as `NULL`, a special address where nothing is stored
+- when definining a pointer, you need to set the type of the value stored in the pointer
 
   ```c
   int x = 5;
   int *y = &x; // because y points to an address where an int is stored
   ```
 
-  ## Lesson 10
+## Lesson 10
 
-  More about pointers
+More about pointers
 
-  - once you have a pointer to the address where a variable is stored, you can access the variable value with `p[0] = <new-value>`, which is the equal to `*p = <new-value>`
-  - `p[0]` or `*p` is called "dereferencing"
-  - you can find the pointer to a pointer by doing `int **z = &y`, where `int *y = &x` and `int x = 5`
-  - pointers are like long: they usually are the same size as the CPU address width (4 bytes on 32-bit systems, 8 bytes on 64-bit)
-  - you can do casting with `(int)sizeof(x)` (as the size is a long but we are printing an int)
-  - when defining strings you use arrays of char. The name of the array can be both used as a pointer and as a reference to the string:
+- once you have a pointer to the address where a variable is stored, you can access the variable value with `p[0] = <new-value>`, which is the equal to `*p = <new-value>`
+- `p[0]` or `*p` is called "dereferencing"
+- you can find the pointer to a pointer by doing `int **z = &y`, where `int *y = &x` and `int x = 5`
+- pointers are like long: they usually are the same size as the CPU address width (4 bytes on 32-bit systems, 8 bytes on 64-bit)
+- you can do casting with `(int)sizeof(x)` (as the size is a long but we are printing an int)
+- when defining strings you use arrays of char. The name of the array can be both used as a pointer and as a reference to the string:
 
   ```c
   char hello[] = "Hello world!";
@@ -244,14 +244,14 @@ printf("\n");
   char *p = hello;
   ```
 
-  - the pointer to a string points to the address of the first character. I can use dereferencing to get any char from the string
+- the pointer to a string points to the address of the first character. I can use dereferencing to get any char from the string
 
   ```c
   printf("%c %c %c\n", p[0], p[1], p[2]);         // array-style
   printf("%c %c %c\n", *p, *(p+1), *(p+2));       // pointer arithmetic
   ```
 
-  - I can also define a pointer with a different type. Doing `char *p` would create a pointer to a single char byte. But I could also do `short *s` which would point to the first 2 bytes
+- I can also define a pointer with a different type. Doing `char *p` would create a pointer to a single char byte. But I could also do `short *s` which would point to the first 2 bytes
 
   ```c
   char hello[] = "Hello world!";
@@ -269,3 +269,4 @@ printf("\n");
   printf("1 byte pointer, %c\n", *p); // e
   printf("2 bytes pointer, %d\n", *s); // 27756 => l = 108 => 108 + 108*256 => 27756!
   ```
+
