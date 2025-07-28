@@ -270,3 +270,44 @@ More about pointers
   printf("2 bytes pointer, %d\n", *s); // 27756 => l = 108 => 108 + 108*256 => 27756!
   ```
 
+## Lesson 11
+
+- we saw how string arrays have a final 0 byte, which is used to determine the string end (aka zero-terminated strings)
+
+  ```c
+  int main() {
+    char str[] = "Hello";
+    char* p = str;
+    while (*p) putchar(*p++);
+    printf("\n");
+
+    return 0;
+  }
+  ```
+
+- and you can put a 0 byte in the middle of the string, it stops prematurely
+
+  ```c
+   int main() {
+    char str[] = "Hel\0lo";
+    char* p = str;
+    while (*p) putchar(*p++);
+    printf("\n");
+
+    return 0;
+  }
+  ```
+
+- to being able to print the full string contents, even the 0 byte in the middle, we can use a length-prefixed string:
+
+  ```c
+  int main( {
+    // we prefix the string with its own length (excluding the prefix itself BUT including the 0 byte in the middle)
+    char str[] = "\6Hel\0lo";
+      char* p = str;
+      int len = *p++;
+      printf("String length: %d\n", len);
+      for (int i = 0; i < len; i++) putchar(p[i]);
+      printf("\n");
+  })
+  ```
