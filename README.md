@@ -96,6 +96,7 @@ int main() {
 - `char c = 'A'` using `''` turns A into the respective ASCII decimal representation. In C everything is a number
 - strings are `int` arrays, made of single 1-byte `char`
 - `0` is used as a `null terminator` to mark the string as complete
+
   - if you terminate a literal string array with something else than 0, the program will print gibberish
 
     ```c
@@ -311,3 +312,15 @@ More about pointers
       printf("\n");
   })
   ```
+
+## Lesson 12
+
+We saw the existence of length-prefixed strings and in this lesson we are exploring creating a super small library to create said strings in C.
+
+The lesson is mostly code and touches on:
+
+- creating a different way to handle strings
+- limitations of functions returning pointers
+- using `malloc`
+
+Refer to the `lesson-012/lesson.c` file for the full commented code.
