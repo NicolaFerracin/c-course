@@ -36,11 +36,18 @@ void print_lps(char* s) {
 // Instead of initialising a buffer like in init_lps, we create a brand new variable with `malloc`.
 // The rest of the logic stays the same
 char* create_lps(char* s, int len) {
-    char* str = malloc(1 + len);
+    char* str = malloc(1 + len + 1);
     unsigned char* lps = (unsigned char*)str;
     *lps = len;
     for (int i = 0; i < len; i++) str[i + 1] = s[i];
+
+    str[len + 1] = 0;
+
     return str;
+}
+
+char* lps_getc(char* s) {
+    return s + 1;
 }
 
 int main() {
@@ -61,7 +68,11 @@ int main() {
     // it uses `malloc` to create a pointer that can then be returned
     char* str = create_lps("Hello\0World", 11);
     print_lps(str);
-    free(str);
 
+    // We can also make our LPS strings interoperable with the standard C strings by adding a method that returns the point to the 0-terminated string embedded in our LPS
+    printf("%s\n", lps_getc(str));
+
+    // When using malloc to allocate memory, we need to free said memory
+    free(str);
     return 0;
 }
