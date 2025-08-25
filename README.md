@@ -324,3 +324,25 @@ The lesson is mostly code and touches on:
 - using `malloc`
 
 Refer to the `lesson-012/lesson.c` file for the full commented code.
+
+## Lesson 13
+
+- From the previous lesson, we added a `lps_getc` function to get the string embedded within the length-prefixed string (lps)
+  - Example:
+    ```
+    lps = |L|string (where L is the byte holding the length of the following string)
+    c_str = string
+    ```
+- `lps_getc` helps with interoperability, so that we can use our LPS with the standard C strings when necessary (i.e. third-party libs, other C helpers...)
+- we can do even better, when creating a new LPS, by returning the pointer to the string instead of the pointer to the beginning of the length header
+- we could be passing a reference to the string several times in our program, so executing a the malloc free might render said references unusable
+  - it would be cool if we could keep track of the active references as a second header, after the length header, so that we have an internal state that frees up the memory only when there are no active references left
+  - keeping track of active references is known as "reference counting". As said, we could add another header and increase/decrease the counter every time we assign/remove a reference, but that is annoying to keep track of. What if we had a way to handle that more naturally?
+  - segway into lesson 14 and C structs!
+  ```c
+  struct lps {
+    uint32_t len;
+    uint32_t refcount;
+    char str[0]
+  }
+  ```
