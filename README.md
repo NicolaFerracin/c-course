@@ -346,3 +346,9 @@ Refer to the `lesson-012/lesson.c` file for the full commented code.
     char str[0]
   }
   ```
+
+## Lesson 14
+
+- Structs are the only aggregated data type in C. Eveything else is always and only numbers.
+
+Refer to the `lesson-014/lesson.c` file for the full commented code.
