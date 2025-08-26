@@ -352,3 +352,9 @@ Refer to the `lesson-012/lesson.c` file for the full commented code.
 - Structs are the only aggregated data type in C. Eveything else is always and only numbers.
 
 Refer to the `lesson-014/lesson.c` file for the full commented code.
+
+## Lesson 15
+
+Implement `tac` in C. It works exactly like `cat`, but printing lines in reversed order from last to first. The program shall make use of `structs` and linked lists.
+
+Refer to the `lesson-015/lesson.c` file for the full commented code.
