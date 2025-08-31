@@ -358,3 +358,13 @@ Refer to the `lesson-014/lesson.c` file for the full commented code.
 Implement `tac` in C. It works exactly like `cat`, but printing lines in reversed order from last to first. The program shall make use of `structs` and linked lists.
 
 Refer to the `lesson-015/lesson.c` file for the full commented code.
+
+## Lesson 16
+
+Going back to the end of lesson 13, where we wanted to add a second prefix to keep track of the active references, and we dived into structs. We can now implement the `lps` struct (length-prefixed string).
+
+- when an interface uses reference counting, the function creating the object usually returns the object with the ref count set to 1 already
+- conventionally we use a `release` and a `retain` function to increase/decrease the ref count
+- we can add the concept of magic number set to a special value, which would help us validating strings. This is because we always operate with memory addresses, so once the memory allocated to a lps instance has been freed, we could still try to access it via release/retaing, but that would give us garbage values. Adding a validation check by using the magic number, prevents this from happening
+
+Refer to the `lesson-016/lesson.c` file for the full commented code.
