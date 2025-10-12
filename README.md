@@ -372,3 +372,26 @@ Refer to the `lesson-016/lesson.c` file for the full commented code.
 ## Lesson 17
 
 Refer to the `lesson-017/lesson.c` file for the full commented code.
+
+## Lesson 18
+
+`typedef` introduction:
+
+- useful to alias types
+
+  ```c
+  typedef struct {
+    int n;
+    int d;
+  } fract;
+
+  fract f; // instead of 'struct fract f'
+  ```
+
+- allows to create opaque types, hiding implementation details
+  ```c
+  // FILE is a typedef: we don't see its internals
+  FILE *fp = fopen("filepath.c", "r");
+  fclose(fp)
+  ```
+- the other feature is encapsulation and abstraction, detailed in future lessons
