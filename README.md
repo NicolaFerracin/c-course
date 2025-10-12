@@ -368,3 +368,7 @@ Going back to the end of lesson 13, where we wanted to add a second prefix to ke
 - we can add the concept of magic number set to a special value, which would help us validating strings. This is because we always operate with memory addresses, so once the memory allocated to a lps instance has been freed, we could still try to access it via release/retaing, but that would give us garbage values. Adding a validation check by using the magic number, prevents this from happening
 
 Refer to the `lesson-016/lesson.c` file for the full commented code.
+
+## Lesson 17
+
+Refer to the `lesson-017/lesson.c` file for the full commented code.
