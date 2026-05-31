@@ -66,7 +66,6 @@ int main() {
 ## Lesson 4
 
 - types in C, as opposed to most other strictly typed languages, do not explicitely define how big the value ranges are. This is because C was created to be ran on all and any device, so it was never included in the specs what the value ranges shoud be
-
   - on `int` you can use `sizeof` to get the bytes size: `int x = 0; printf("int is %lu bytes\n", sizeof(x))`
   - to get the actual values you can include `limits`
 
@@ -96,7 +95,6 @@ int main() {
 - `char c = 'A'` using `''` turns A into the respective ASCII decimal representation. In C everything is a number
 - strings are `int` arrays, made of single 1-byte `char`
 - `0` is used as a `null terminator` to mark the string as complete
-
   - if you terminate a literal string array with something else than 0, the program will print gibberish
 
     ```c
@@ -197,7 +195,6 @@ int main() {
 
 - C does not handle true or false, only 0 or 1, only integers
 - you can't define variables within a `switch` statement
-
   - but remember we can create blocks anywhere!
 
   ```c
