@@ -392,3 +392,18 @@ Refer to the `lesson-017/lesson.c` file for the full commented code.
   fclose(fp)
   ```
 - the other feature is encapsulation and abstraction, detailed in future lessons
+
+## Lesson 19
+
+- all (most?) C compilers come with a C-library, parts of which are just wrappers around system calls
+- many unix systems are based on posix (solaris, linux, macOS, ...) and all share the same system calls with some additional system-based specifics
+- C programs run inside the user-space. User-space does not have direct access to kernel-space. Opening a file is not done by the program itself but it's done via a system call where the program asks the system to open a file for them, in the kernel space. As the program does not have a way to represent and handle a document, the system simply returns a file descriptor (a number, an ID) so that the program can keep referencing the same file as needed
+
+In this lesson we are replacing using the fopen functions from the stdio C-library, with system calls.
+
+- We use `open` (from `fcntl.h`) as a system call to open a file
+- We use `close` (from `unistd.h`) as another system call to close a file
+- We log potential errors with `stdio.h` `perror`. Interestingly, `perror` also logs the reason of the error: "No such file or directory". How can it do that?
+- You can see that importing `errno.h` you can print the int representing the last occurred error with `printf("Error number is %d\n", errno);`
+- If you print `ENOENT` from the list of possible `open` errors, you see they match
+- This means that errors are available on the thread and they can be interpreted based on the different meanings they have within a library
