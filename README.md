@@ -407,3 +407,35 @@ In this lesson we are replacing using the fopen functions from the stdio C-libra
 - You can see that importing `errno.h` you can print the int representing the last occurred error with `printf("Error number is %d\n", errno);`
 - If you print `ENOENT` from the list of possible `open` errors, you see they match
 - This means that errors are available on the thread and they can be interpreted based on the different meanings they have within a library
+
+## Lesson 20
+
+Exploring why and when to use system calls insted of libc calls:
+Let's walk through a scenario.
+
+The following will sleep before printing.
+```c
+printf("Hello world");
+sleep(5);
+```
+This is becuase what the libc `printf` call does, is to put everything into a buffer and the buffer gets actually printed only after flushing or after a new line.
+
+This is because system calls are expensive and libc calls work around that cost by using the buffer.
+
+Direct system calls can avoid libc buffering overhead in some cases and result in faster execution, but they can also be a pitfall if used incorrectly. Many small system calls are usually slower than buffered libc I/O, so performance depends on the
+  access pattern, buffering strategy, and syscall count.
+Adding the flush, the "Hello World" will get printed before sleeping.
+```c
+printf("Hello world");
+fflush(stdout);
+sleep(5);
+```
+
+This is how it would look like with the `write` system call, where the sleeping also happens last (but it's potentially more expensive if not part of a performant and well crafted program).
+```c
+char* mystr = "Hello World";
+write(STDOUT_FILENO, mystr, strlen(mystr));
+sleep(5);
+```
+
+ In the previous lesson, we talked about how C programs run in user space and cannot directly access kernel-managed resources like open files. The `mmap` system call lets a program map a file into its own virtual address space, so the file contents can be accessed through ordinary memory reads instead of repeated `read` calls.
