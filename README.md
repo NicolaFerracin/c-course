@@ -414,17 +414,20 @@ Exploring why and when to use system calls insted of libc calls:
 Let's walk through a scenario.
 
 The following will sleep before printing.
+
 ```c
 printf("Hello world");
 sleep(5);
 ```
+
 This is becuase what the libc `printf` call does, is to put everything into a buffer and the buffer gets actually printed only after flushing or after a new line.
 
 This is because system calls are expensive and libc calls work around that cost by using the buffer.
 
 Direct system calls can avoid libc buffering overhead in some cases and result in faster execution, but they can also be a pitfall if used incorrectly. Many small system calls are usually slower than buffered libc I/O, so performance depends on the
-  access pattern, buffering strategy, and syscall count.
+access pattern, buffering strategy, and syscall count.
 Adding the flush, the "Hello World" will get printed before sleeping.
+
 ```c
 printf("Hello world");
 fflush(stdout);
@@ -432,10 +435,84 @@ sleep(5);
 ```
 
 This is how it would look like with the `write` system call, where the sleeping also happens last (but it's potentially more expensive if not part of a performant and well crafted program).
+
 ```c
 char* mystr = "Hello World";
 write(STDOUT_FILENO, mystr, strlen(mystr));
 sleep(5);
 ```
 
- In the previous lesson, we talked about how C programs run in user space and cannot directly access kernel-managed resources like open files. The `mmap` system call lets a program map a file into its own virtual address space, so the file contents can be accessed through ordinary memory reads instead of repeated `read` calls.
+In the previous lesson, we talked about how C programs run in user space and cannot directly access kernel-managed resources like open files. The `mmap` system call lets a program map a file into its own virtual address space, so the file contents can be accessed through ordinary memory reads instead of repeated `read` calls.
+
+## Lesson 21
+
+### Union
+
+Looking into `union` starting from an example:
+
+```c
+struct foo {
+    int i;
+    unsigned char a[4];
+};
+struct foo f = { 10, { "abcd" } };
+printf("%d [%d %d %d %d]\n", f.i, f.a[0], f.a[1], f.a[2], f.a[3]);
+```
+
+As expected we print `10 [97 98 99 100]`.
+
+But if defined `i` and `a` within an union, they share the same starting address:
+
+```c
+struct ufoo {
+    union {
+        int i;
+        unsigned char a[4];
+    };
+};
+struct ufoo uf = { 10 };
+printf("%d [%d %d %d %d]\n", uf.i, uf.a[0], uf.a[1], uf.a[2], uf.a[3]);
+```
+
+As `i` and `a` share the same memory address, we print `10 [10 0 0 0]`.
+
+One of the most common reasons to use unions is showcased in this example:
+let's say we have a struct that holds a value but the value can be of different types.
+Instead of allocating a bigger memory address to support all possible types, we can use union to allocate a large enough space to hold the largest member, instead of the sum of all the members.
+
+```c
+struct typevalue {
+  int type;
+  union {
+    double num;
+    char str[10];
+    int opcode;
+  };
+};
+```
+
+When instantiating a new `typevalue` instance, instead of reserving space for a `double`, a `char` array and an `int`, we use the union so that the 3 different types share the same starting memory address.
+
+### Bitfield
+
+In C we can say how much bits to allocate for a given variable.
+
+```c
+struct bar {
+    unsigned char a : 4;
+    unsigned char b : 4;
+    unsigned char c : 8;
+};
+```
+
+`a` and `b` can hold 4-bits numbers (2^4 - 1 => 0..15) and `c` can go up to 8-bits (1-byte => 255).
+
+Given that we have a pre-allocated space, if we provide too big of a number, it will wrap:
+
+```c
+struct bar b;
+b.a = 17;
+printf("%d", b.a) // will print 1, which is (17 % 16 = 1)
+```
+
+This wrap around is the behaviour for `unsigned` values, but for signed values the behaviour is undefined.
