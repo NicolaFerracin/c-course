@@ -516,3 +516,11 @@ printf("%d", b.a) // will print 1, which is (17 % 16 = 1)
 ```
 
 This wrap around is the behaviour for `unsigned` values, but for signed values the behaviour is undefined.
+
+## Lesson 22
+
+Lesson about function pointers.. Nothing new coming from high-level languages, it's mainly about being able to declare a pointer to a function which allows to passing a function around.
+
+Like arrays, function names can be used as pointers. A function pointer stores the address of executable code, and another function can call it later.
+
+Simple example in the lesson-022 folder, showing how to pass a comparator function to sort, as you would do in `js` with `Array.sort()`.
