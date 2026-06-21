@@ -641,3 +641,44 @@ void* xmalloc(size_t size) {
     return ptr;
 }
 ```
+
+## Lesson 24
+
+Continuation of the Forth-like language compiler started in Lesson 23.
+
+Let's now define a very simple `.tf` program we can then read and interpret:
+
+```
+5 10 20
+```
+
+And let's read it from the main:
+
+```c
+FILE* fp = fopen(argv[1], "r");               // Open
+if (fp == NULL) {                             // Null file handling
+    perror("Opening Toy Forth Program");
+    return 1;
+}
+fseek(fp, 0, SEEK_END);                       // Go to end
+long file_size = ftell(fp);                   // Get file length
+fseek(fp, 0, SEEK_SET);                       // Move cursor back to the start of the file
+char* prgtext = xmalloc(file_size + 1);       // Allocate memory to read the file + 1 byte for the null terminator
+fread(prgtext, file_size, 1, fp);             // Read file into prgtext
+prgtext[file_size] = 0;                       // Add null terminator
+fclose(fp);                                   // Close
+
+printf("Program text: %s\n", prgtext);        // Print TF program
+```
+
+Now it becomes a bit annoying to copy/paste all the snippets as they are getting longer, but in a few words we:
+
+- Read the program file into memory (the snippet just above here)
+- Call `compile` on it, which takes care of identifying the program elements by parsing spaces and for now only parsing integers
+- Create `parseInt` to parse integers whenever we identify one (either by seeing digit or a - sign)
+  - We keep reading from the program file as long as we see digits
+  - We keep track of the start and end of the number digit positions
+  - We copy the token into a temporary null-terminated buffer and call `atoi` to convert that token to an integer. I.E: in `abc 1234 def` the number goes from position 4 to 7
+- Once we parsed the integer (and later all the other types) we create an object representation of it and we add it at the end of the list
+- Once we compiled the whole program file we return the `tfobj` representing it
+- We call `exec` on the compiled program, which for now just prints the elements
