@@ -524,3 +524,120 @@ Lesson about function pointers.. Nothing new coming from high-level languages, i
 Like arrays, function names can be used as pointers. A function pointer stores the address of executable code, and another function can call it later.
 
 Simple example in the lesson-022 folder, showing how to pass a comparator function to sort, as you would do in `js` with `Array.sort()`.
+
+## Lesson 23
+
+Let's put it all together into something more complex. A code interpreter.
+
+Let's use a Forth-like language (we'll call ToyForth), which is a stack-oriented language (`5 5 +` => 10).
+
+The stack contains objects which get evaluated one at a time.
+
+Let's start with the data types, by first defining the stack object:
+
+```c
+#define TFOBJ_TYPE_INT 0
+#define TFOBJ_TYPE_STR 1
+#define TFOBJ_TYPE_BOOL 2
+#define TFOBJ_TYPE_LIST 3
+#define TFOBJ_TYPE_SYMBOL 4
+
+typedef struct tfobj {
+    int refcount; // Reference counting
+    int type; // TFOBJ_TYPE_*
+    union {
+        int i; // We can use 1/0 for booleans as well
+        struct { // We need a struct for strings (with pointer and length)
+            char* ptr;
+            size_t len;
+        } str;
+        struct { // An object can be a list of more objects, recursive
+            struct tfobj** ele;
+            size_t len;
+        } list;
+    };
+} tfobj;
+```
+
+We then need a way to parse the actual program, passed from the CLI:
+
+```c
+typedef struct tfparser {
+    char* prg; // The program to compile into a list
+    char* p; // Next token to parse
+} tfparser;
+
+int main(int argc /** The number of arguments, where the first one is always the name of the program */, char** argv /** The actual arguments */) {
+    if (argc != 2) {
+        fprintf(stderr, "Usage: %s <filename>\n", argv[0]);
+        return 1;
+    }
+
+    return 0;
+}
+```
+
+We also need to define a data structure for the context holding the program. `tfctx` is the interpreter context. It groups together the runtime state of the ToyForth program, starting with the stack. This makes it easier to pass interpreter state between functions without passing many separate arguments.
+
+```c
+typedef struct tfctx {
+    tfobj* stack;
+} tfctx;
+```
+
+We can then create all the functions required to create stack objects of different types, by first defining a function to allocate an object and then to create the object for each type:
+
+```c
+tfobj* createObj(int type) {
+    tfobj* o = xmalloc(sizeof(tfobj));
+    o->type = type;
+    o->refcount = 1;
+    return o;
+}
+
+tfobj* createIntObj(int i) {
+    tfobj* o = createObj(TFOBJ_TYPE_INT);
+    o->i = i;
+    return o;
+}
+
+tfobj* createBoolObj(int b) {
+    tfobj* o = createObj(TFOBJ_TYPE_BOOL);
+    o->i = b;
+    return o;
+}
+
+tfobj* createStrObj(char* s, size_t len) {
+    tfobj* o = createObj(TFOBJ_TYPE_STR);
+    o->str.ptr = s;
+    o->str.len = len;
+    return o;
+}
+
+tfobj* createSymbolObj(char* s, size_t len) {
+    tfobj* o = createObj(TFOBJ_TYPE_SYMBOL);
+    o->str.ptr = s;
+    o->str.len = len;
+    return o;
+}
+
+tfobj* createListObj(void) {
+    tfobj* o = createObj(TFOBJ_TYPE_LIST);
+    o->list.ele = NULL;
+    o->list.len = 0;
+    return o;
+}
+```
+
+Notice how we use `xmalloc`: it's a small wrapper around `malloc`. It centralizes out-of-memory handling, so the rest of the code can allocate memory without repeating the same `NULL` check every time.
+
+```c
+void* xmalloc(size_t size) {
+    void* ptr = malloc(size);
+    if (ptr == NULL) {
+        fprintf(stderr, "Out of memory allocating %zu bytes\n", size);
+        exit(1);
+    }
+    return ptr;
+}
+```
