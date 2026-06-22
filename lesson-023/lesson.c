@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <ctype.h>
 #include <string.h>
+#include <assert.h>
 
 /* =========== DATA STRUCTURES =========== */
 
@@ -38,11 +39,21 @@ typedef struct tfctx {
 } tfctx;
 
 
+
 /* =========== ALLOCATION WRAPPERS =========== */
 void* xmalloc(size_t size) {
     void* ptr = malloc(size);
     if (ptr == NULL) {
         fprintf(stderr, "Out of memory allocating %zu bytes\n", size);
+        exit(1);
+    }
+    return ptr;
+}
+
+void* xrealloc(void* oldptr, size_t size) {
+    void* ptr = realloc(oldptr, size);
+    if (ptr == NULL) {
+        fprintf(stderr, "Out of memory re-allocating %zu bytes\n", size);
         exit(1);
     }
     return ptr;
@@ -71,15 +82,17 @@ tfobj* createBoolObj(int b) {
 
 tfobj* createStrObj(char* s, size_t len) {
     tfobj* o = createObj(TFOBJ_TYPE_STR);
-    o->str.ptr = s;
+    o->str.ptr = xmalloc(len + 1);
     o->str.len = len;
+    memcpy(o->str.ptr, s, len);
     return o;
 }
 
 tfobj* createSymbolObj(char* s, size_t len) {
     tfobj* o = createObj(TFOBJ_TYPE_SYMBOL);
-    o->str.ptr = s;
+    o->str.ptr = xmalloc(len + 1);
     o->str.len = len;
+    memcpy(o->str.ptr, s, len);
     return o;
 }
 
@@ -90,12 +103,69 @@ tfobj* createListObj() {
     return o;
 }
 
+
+void printObject(tfobj* o) {
+    switch (o->type) {
+    case TFOBJ_TYPE_INT:
+        printf("%d", o->i);
+        break;
+    case TFOBJ_TYPE_STR:
+        printf("\"%s\"", o->str.ptr);
+        break;
+    case TFOBJ_TYPE_SYMBOL:
+        printf("%s", o->str.ptr);
+        break;
+    case TFOBJ_TYPE_LIST:
+        printf("[");
+        for (size_t j = 0; j < o->list.len; j++) {
+            tfobj* ele = o->list.ele[j];
+            printObject(ele);
+            if (j != o->list.len - 1) printf(" ");
+        }
+        printf("]");
+        break;
+    default:
+        printf("?");
+        break;
+    }
+}
+
+void release(tfobj* o);
+
+void freeObject(tfobj* o) {
+    switch (o->type) {
+    case TFOBJ_TYPE_LIST:
+        for (size_t j = 0; j < o->list.len; j++) {
+            tfobj* ele = o->list.ele[j];
+            release(ele);
+        }
+        break;
+    case TFOBJ_TYPE_SYMBOL:
+    case TFOBJ_TYPE_STR:
+        free(o->str.ptr);
+        break;
+    }
+    free(o);
+}
+
+tfobj* retain(tfobj* o) {
+    o->refcount++;
+    return o;
+}
+
+void release(tfobj* o) {
+    assert(o->refcount > 0);
+    o->refcount--;
+    if (o->refcount == 0) freeObject(o);
+    return;
+}
+
 /* =========== LIST OBJECT =========== */
 
 /** Add new element at the end of the list "l" */
 /** It is up to the caller to increment the reference count of the element added to the list. */
 void listPush(tfobj* l, tfobj* ele) {
-    l->list.ele = realloc(l->list.ele, sizeof(tfobj*) * (l->list.len + 1));
+    l->list.ele = xrealloc(l->list.ele, sizeof(tfobj*) * (l->list.len + 1));
     l->list.ele[l->list.len] = ele;
     l->list.len++;
 }
@@ -109,14 +179,12 @@ void parseSpaces(tfparser* parser) {
 tfobj* parseInt(tfparser* parser) {
     char buf[MAX_INT_LEN];
     char* start = parser->p;
-    char* end;
 
     // Parse each characted as long as it's a number
     if (parser->p[0] == '-') parser->p++;
     while (parser->p[0] && isdigit(parser->p[0])) parser->p++;
     // We now where the number started, we now know where it ends
-    end = parser->p;
-    int numlen = end - start;
+    int numlen = parser->p - start;
     if (numlen > MAX_INT_LEN) return NULL;
 
     // We can do memcpy to get the full number
@@ -125,6 +193,18 @@ tfobj* parseInt(tfparser* parser) {
 
     tfobj* o = createIntObj(atoi(buf));
     return o;
+}
+
+int is_symbol_character(int c) {
+    char symchars[] = "+-*/%";
+    return isalpha(c) || strchr(symchars, c) != NULL;
+}
+
+tfobj* parseSymbol(tfparser* parser) {
+    char* start = parser->p;
+    while (is_symbol_character(parser->p[0])) parser->p++;
+    int symlen = parser->p - start;
+    return createSymbolObj(start, symlen);
 }
 
 tfobj* compile(char* prg) {
@@ -141,8 +221,11 @@ tfobj* compile(char* prg) {
         parseSpaces(&parser);
         if (parser.p[0] == 0) break; // End of program reached
 
-        if (isdigit(parser.p[0]) || parser.p[0] == '-') {
+        if (isdigit(parser.p[0]) || (parser.p[0] == '-' && isdigit(parser.p[1]))) {
             o = parseInt(&parser);
+        }
+        else if (is_symbol_character(parser.p[0])) {
+            o = parseSymbol(&parser);
         }
         else {
             o = NULL;
@@ -150,7 +233,7 @@ tfobj* compile(char* prg) {
 
         // Check if the current token produced a parsing error
         if (o == NULL) {
-            // FIXME: Release parsed
+            release(parsed);
             printf("Syntax error near: %32s ...\n", token_start);
             return NULL;
         }
@@ -163,25 +246,43 @@ tfobj* compile(char* prg) {
     return parsed;
 }
 
-/* =========== EXECUTE THE PROGRAM =========== */
+/* =========== EXECUTION AND CONTEXT =========== */
 
-void exec(tfobj* prg) {
-    printf("[");
+tfctx* createCtx(void) {
+    tfctx* ctx = xmalloc(sizeof(*ctx));
+    ctx->stack = createListObj();
+    return ctx;
+}
+
+
+/** Try to resolve and call the function associated with the given symbol "word".
+ * Returns 0 when the symbol "word" can be resolved to a function.
+ * Returns 1 otherwise.
+ */
+int callSymbol(tfctx* ctx, tfobj* word) {
+    (void)ctx;
+    (void)word;
+    return 0;
+}
+
+void exec(tfctx* ctx, tfobj* prg) {
+    // Assert our program is a list of objects.
+    assert(prg->type == TFOBJ_TYPE_LIST);
+
+    // Process one item (word) in the list at a time.
     for (size_t j = 0; j < prg->list.len; j++) {
-        tfobj* o = prg->list.ele[j];
-        switch (o->type) {
-        case TFOBJ_TYPE_INT:
-            printf("%d ", o->i);
+        tfobj* word = prg->list.ele[j];
+        switch (word->type) {
+        case TFOBJ_TYPE_SYMBOL:
+            callSymbol(ctx, word);
             break;
         default:
-            printf("?");
+            listPush(ctx->stack, word);
+            retain(word);
             break;
         }
     }
-
-    printf("]\n");
 }
-
 
 /* =========== MAIN =========== */
 
@@ -205,7 +306,16 @@ int main(int argc /** The number of arguments, where the first one is always the
     fclose(fp);                                   // Close
 
     tfobj* prg = compile(prgtext);
-    exec(prg);
+    printf("Program content:\n");
+    printObject(prg);
+    printf("\n");
+    printf("\n");
+
+    tfctx* ctx = createCtx();
+    exec(ctx, prg);
+    printf("Stack content:\n");
+    printObject(ctx->stack);
+    printf("\n");
 
     return 0;
 }
