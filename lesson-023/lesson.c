@@ -34,10 +34,25 @@ typedef struct tfparser {
     char* p; // Next token to parse
 } tfparser;
 
+
+typedef struct tfctx tfctx;
+
+/** Each entry represents a symbol and its associated function and logic. */
+typedef struct FunctionTableEntry {
+    tfobj* name;
+    void (*callback) (tfctx* ctx, tfobj* name);
+    tfobj* user_func;
+} tffuncentry;
+
+typedef struct FunctionTable {
+    tffuncentry** func_table;
+    size_t func_count;
+} tffunctable;
+
 typedef struct tfctx {
     tfobj* stack;
+    tffunctable functable;
 } tfctx;
-
 
 
 /* =========== ALLOCATION WRAPPERS =========== */
@@ -160,6 +175,25 @@ void release(tfobj* o) {
     return;
 }
 
+int isSameStringObject(tfobj* a, tfobj* b) {
+    if (a->str.len != (b->str.len)) return 1;
+    if (memcmp(a->str.ptr, b->str.ptr, a->str.len) == 0) return 0;
+    return 1;
+}
+int isSameSymbolObject(tfobj* a, tfobj* b) {
+    return isSameStringObject(a, b);
+}
+
+int ctxCheckStackMinLen(tfctx* ctx, int minlen) {
+    return ctx->stack->list.len >= minlen;
+}
+
+tfobj* ctxStackPop(tfctx* ctx, int type) {
+    tfobj* o = ctx->stack->list.ele[ctx->stack->list.len];
+    if (o->type != type) return NULL;
+    return o;
+}
+
 /* =========== LIST OBJECT =========== */
 
 /** Add new element at the end of the list "l" */
@@ -246,22 +280,77 @@ tfobj* compile(char* prg) {
     return parsed;
 }
 
+/* =========== BASIC STANDARD LIBRARY =========== */
+
+void basicMathFunction(tfctx* ctx, tfobj* name) {
+    if (ctxCheckStackMinLen(ctx, 2)) return;
+    tfobj* a = ctxStackPop(ctx, TFOBJ_TYPE_INT);
+    tfobj* b = ctxStackPop(ctx, TFOBJ_TYPE_INT);
+    if (a == NULL || b == NULL) return;
+
+}
+
 /* =========== EXECUTION AND CONTEXT =========== */
+
+tffuncentry* getFunctionByName(tfctx* ctx, tfobj* name) {
+    for (size_t j = 0; j < ctx->functable.func_count; j++) {
+        tffuncentry* fe = ctx->functable.func_table[j];
+        if (isSameStringObject(fe->name, name)) return fe;
+    }
+    return NULL;
+}
+
+tffuncentry* registerFunction(tfctx* ctx, tfobj* name) {
+    ctx->functable.func_table = xrealloc(ctx->functable.func_table, sizeof(tffuncentry*) * (ctx->functable.func_count + 1));
+    tffuncentry* fe = xmalloc(sizeof(tffuncentry));
+    ctx->functable.func_table[ctx->functable.func_count] = fe;
+    ctx->functable.func_count++;
+    fe->name = name;
+    fe->callback = NULL;
+    fe->user_func = NULL;
+    retain(name);
+    return fe;
+}
+
+/** Register a new function with the given name in the function table within the context.
+ * The function replaces existing functions with the same name with the new implementation;
+*/
+void registerCFunction(tfctx* ctx, char* name, void (*callback) (tfctx* ctx, tfobj* name)) {
+    tffuncentry* fe;
+    tfobj* oname = createStrObj(name, strlen(name));
+    fe = getFunctionByName(ctx, oname);
+    if (fe) {
+        if (fe->user_func) {
+            release(fe->user_func);
+            fe->user_func = NULL;
+        }
+        fe->callback = callback;
+    }
+    else {
+        fe = registerFunction(ctx, oname);
+        fe->callback = callback;
+    }
+    release(oname);
+}
+
 
 tfctx* createCtx(void) {
     tfctx* ctx = xmalloc(sizeof(*ctx));
     ctx->stack = createListObj();
+    ctx->functable.func_table = NULL;
+    ctx->functable.func_count = 0;
+    registerCFunction(ctx, "+", basicMathFunction);
     return ctx;
 }
 
 
 /** Try to resolve and call the function associated with the given symbol "word".
- * Returns 0 when the symbol "word" can be resolved to a function.
- * Returns 1 otherwise.
+ * Returns 0 when the symbol "word" can be resolved to a function and was executed.
+ * Returns 1 otherwise (on error).
  */
 int callSymbol(tfctx* ctx, tfobj* word) {
-    (void)ctx;
-    (void)word;
+    tffuncentry* fe = getFunctionByName(ctx, word);
+    if (fe == NULL) return 1;
     return 0;
 }
 

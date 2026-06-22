@@ -683,20 +683,8 @@ Now it becomes a bit annoying to copy/paste all the snippets as they are getting
 - Once we compiled the whole program file we return the `tfobj` representing it
 - We call `exec` on the compiled program, which for now just prints the elements
 
-## Lesson 25/26
+## Lesson 25/26/27
 
 Continuation of the Forth-like language compiler started in Lesson 23.
 
-We start by refactoring `exec` to be `printObject` which can be called recursively to print list within lists.
-
-We also update `createStringObj` and `createSymbolObj` to properly allocate memory for the string/symbol.
-
-Finally we get to the real `exec` function that takes care of executing the parsed program.
-
-Tiying some loose ends as well:
-
-- Add `xrealloc` wrapper to `realloc` handling out-of-memory scenarios
-- Create `retain` and `release` to handle refcounting
-- Implement `freeObj` to free memory when an object is not needed anymore, can be used recursively
-
-We set
+Check the code for lesson 23 which contains versioned changes.
