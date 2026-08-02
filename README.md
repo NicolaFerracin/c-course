@@ -688,3 +688,27 @@ Now it becomes a bit annoying to copy/paste all the snippets as they are getting
 Continuation of the Forth-like language compiler started in Lesson 23.
 
 Check the code for lesson 23 which contains versioned changes.
+
+## Lesson 28
+
+About variadic functions.
+
+`...` in the list of parameters, tell C that the function takes a variable amount of parameters
+
+```c
+void my_func(int required_arg_1, int required_arg_2, ...)
+```
+
+You can process a variable number of parameters like this:
+
+```c
+// initialise a list object
+va_list ap;
+va_start(ap, last_known_arg); // where last_known_arg is the last known fixed argument, in the example above it would be `required_arg_2`
+
+// process the variable parameters
+va_arg(ap, int|char*|...); // it reads one argument every time it's invoked. The second argument represents the type we expect the argument to be, so that it reads as much memory as necessary
+
+// wrap things up
+va_end(ap);
+```
