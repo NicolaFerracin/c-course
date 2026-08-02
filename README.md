@@ -712,3 +712,9 @@ va_arg(ap, int|char*|...); // it reads one argument every time it's invoked. The
 // wrap things up
 va_end(ap);
 ```
+
+## Lesson 29
+
+Continuation of the Forth-like language compiler started in Lesson 23.
+
+Check the code for lesson 23 which contains versioned changes.

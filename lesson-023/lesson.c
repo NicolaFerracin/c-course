@@ -7,11 +7,15 @@
 
 /* =========== DATA STRUCTURES =========== */
 
+#define TF_OK 0
+#define TF_ERR 1
+
 #define TFOBJ_TYPE_INT 0
 #define TFOBJ_TYPE_STR 1
 #define TFOBJ_TYPE_BOOL 2
 #define TFOBJ_TYPE_LIST 3
 #define TFOBJ_TYPE_SYMBOL 4
+#define TFOBJ_TYPE_ALL 255 // Used by listPopType() and other functions
 
 typedef struct tfobj {
     int refcount; // Reference counting
@@ -39,8 +43,8 @@ typedef struct tfctx tfctx;
 
 /** Each entry represents a symbol and its associated function and logic. */
 typedef struct FunctionTableEntry {
-    tfobj* name;
-    void (*callback) (tfctx* ctx, tfobj* name);
+    char* name;
+    int (*callback) (tfctx* ctx, char* name);
     tfobj* user_func;
 } tffuncentry;
 
@@ -100,6 +104,7 @@ tfobj* createStrObj(char* s, size_t len) {
     o->str.ptr = xmalloc(len + 1);
     o->str.len = len;
     memcpy(o->str.ptr, s, len);
+    o->str.ptr[len] = 0;
     return o;
 }
 
@@ -108,6 +113,7 @@ tfobj* createSymbolObj(char* s, size_t len) {
     o->str.ptr = xmalloc(len + 1);
     o->str.len = len;
     memcpy(o->str.ptr, s, len);
+    o->str.ptr[len] = 0;
     return o;
 }
 
@@ -184,16 +190,6 @@ int isSameSymbolObject(tfobj* a, tfobj* b) {
     return isSameStringObject(a, b);
 }
 
-int ctxCheckStackMinLen(tfctx* ctx, int minlen) {
-    return ctx->stack->list.len >= minlen;
-}
-
-tfobj* ctxStackPop(tfctx* ctx, int type) {
-    tfobj* o = ctx->stack->list.ele[ctx->stack->list.len];
-    if (o->type != type) return NULL;
-    return o;
-}
-
 /* =========== LIST OBJECT =========== */
 
 /** Add new element at the end of the list "l" */
@@ -202,6 +198,42 @@ void listPush(tfobj* l, tfobj* ele) {
     l->list.ele = xrealloc(l->list.ele, sizeof(tfobj*) * (l->list.len + 1));
     l->list.ele[l->list.len] = ele;
     l->list.len++;
+}
+
+tfobj* listPopType(tfctx* ctx, int type) {
+    tfobj* stack = ctx->stack;
+    if (stack->list.len == 0) return NULL;
+    tfobj* to_pop = stack->list.ele[stack->list.len - 1];
+    if (to_pop->type != type) return NULL;
+    stack->list.len--;
+    if (stack->list.len == 0) {
+        free(stack->list.ele);
+        stack->list.ele = NULL;
+    }
+    else {
+        stack->list.ele = xrealloc(stack->list.ele, sizeof(tfobj*) * stack->list.len);
+    }
+    return to_pop;
+}
+
+tfobj* listPop(tfctx* ctx) {
+    return listPopType(ctx, TFOBJ_TYPE_ALL);
+}
+
+/* =========== CONTEXT HANDLERS =========== */
+
+int ctxCheckStackMinLen(tfctx* ctx, size_t minlen) {
+    return (ctx->stack->list.len >= minlen) ? TF_OK : TF_ERR;
+}
+
+// Pop the top object in the interpreter main stack
+tfobj* ctxStackPop(tfctx* ctx, int type) {
+    return listPopType(ctx, type);
+}
+
+// Push the object on the interpreter main stack
+void ctxStackPush(tfctx* ctx, tfobj* obj) {
+    listPush(ctx->stack, obj);
 }
 
 /* =========== TURN PROGRAM INTO TOY FORTH LIST =========== */
@@ -231,6 +263,7 @@ tfobj* parseInt(tfparser* parser) {
 
 int is_symbol_character(int c) {
     char symchars[] = "+-*/%";
+    if (c == 0) return 0;
     return isalpha(c) || strchr(symchars, c) != NULL;
 }
 
@@ -282,43 +315,58 @@ tfobj* compile(char* prg) {
 
 /* =========== BASIC STANDARD LIBRARY =========== */
 
-void basicMathFunction(tfctx* ctx, tfobj* name) {
-    if (ctxCheckStackMinLen(ctx, 2)) return;
-    tfobj* a = ctxStackPop(ctx, TFOBJ_TYPE_INT);
+int basicMathFunction(tfctx* ctx, char* name) {
+    if (ctxCheckStackMinLen(ctx, 2)) return TF_ERR;
     tfobj* b = ctxStackPop(ctx, TFOBJ_TYPE_INT);
-    if (a == NULL || b == NULL) return;
+    if (b == NULL) return TF_ERR;
+    tfobj* a = ctxStackPop(ctx, TFOBJ_TYPE_INT);
+    if (a == NULL) {
+        ctxStackPush(ctx, b);
+        return TF_ERR;
+    }
 
+    int result;
+    switch (name[0]) {
+    case '+': result = a->i + b->i; break;
+    case '-': result = a->i - b->i; break;
+    case '*': result = a->i * b->i; break;
+    }
+    release(a);
+    release(b);
+
+    ctxStackPush(ctx, createIntObj(result));
+    return TF_OK;
 }
 
 /* =========== EXECUTION AND CONTEXT =========== */
 
-tffuncentry* getFunctionByName(tfctx* ctx, tfobj* name) {
+// Resolve the function scanning the function table looking for the given function name.
+tffuncentry* getFunctionByName(tfctx* ctx, char* name) {
     for (size_t j = 0; j < ctx->functable.func_count; j++) {
         tffuncentry* fe = ctx->functable.func_table[j];
-        if (isSameStringObject(fe->name, name)) return fe;
+        if (strcmp(fe->name, name) == 0) return fe;
     }
     return NULL;
 }
 
-tffuncentry* registerFunction(tfctx* ctx, tfobj* name) {
+tffuncentry* registerFunction(tfctx* ctx, char* name) {
     ctx->functable.func_table = xrealloc(ctx->functable.func_table, sizeof(tffuncentry*) * (ctx->functable.func_count + 1));
     tffuncentry* fe = xmalloc(sizeof(tffuncentry));
     ctx->functable.func_table[ctx->functable.func_count] = fe;
     ctx->functable.func_count++;
-    fe->name = name;
+    fe->name = xmalloc(strlen(name) + 1);
+    strcpy(fe->name, name);
     fe->callback = NULL;
     fe->user_func = NULL;
-    retain(name);
     return fe;
 }
 
 /** Register a new function with the given name in the function table within the context.
  * The function replaces existing functions with the same name with the new implementation;
 */
-void registerCFunction(tfctx* ctx, char* name, void (*callback) (tfctx* ctx, tfobj* name)) {
+void registerCFunction(tfctx* ctx, char* name, int (*callback) (tfctx* ctx, char* name)) {
     tffuncentry* fe;
-    tfobj* oname = createStrObj(name, strlen(name));
-    fe = getFunctionByName(ctx, oname);
+    fe = getFunctionByName(ctx, name);
     if (fe) {
         if (fe->user_func) {
             release(fe->user_func);
@@ -327,10 +375,9 @@ void registerCFunction(tfctx* ctx, char* name, void (*callback) (tfctx* ctx, tfo
         fe->callback = callback;
     }
     else {
-        fe = registerFunction(ctx, oname);
+        fe = registerFunction(ctx, name);
         fe->callback = callback;
     }
-    release(oname);
 }
 
 
@@ -340,6 +387,8 @@ tfctx* createCtx(void) {
     ctx->functable.func_table = NULL;
     ctx->functable.func_count = 0;
     registerCFunction(ctx, "+", basicMathFunction);
+    registerCFunction(ctx, "-", basicMathFunction);
+    registerCFunction(ctx, "*", basicMathFunction);
     return ctx;
 }
 
@@ -349,12 +398,18 @@ tfctx* createCtx(void) {
  * Returns 1 otherwise (on error).
  */
 int callSymbol(tfctx* ctx, tfobj* word) {
-    tffuncentry* fe = getFunctionByName(ctx, word);
-    if (fe == NULL) return 1;
-    return 0;
+    tffuncentry* fe = getFunctionByName(ctx, word->str.ptr);
+    if (fe == NULL) return TF_ERR;
+    if (fe->user_func) {
+        // TODO
+        return TF_ERR;
+    }
+    else {
+        return fe->callback(ctx, fe->name);
+    }
 }
 
-void exec(tfctx* ctx, tfobj* prg) {
+int exec(tfctx* ctx, tfobj* prg) {
     // Assert our program is a list of objects.
     assert(prg->type == TFOBJ_TYPE_LIST);
 
@@ -363,14 +418,18 @@ void exec(tfctx* ctx, tfobj* prg) {
         tfobj* word = prg->list.ele[j];
         switch (word->type) {
         case TFOBJ_TYPE_SYMBOL:
-            callSymbol(ctx, word);
+            if (callSymbol(ctx, word) == TF_ERR) {
+                printf("Run time error\n");
+                return TF_ERR;
+            }
             break;
         default:
-            listPush(ctx->stack, word);
+            ctxStackPush(ctx, word);
             retain(word);
             break;
         }
     }
+    return TF_OK;
 }
 
 /* =========== MAIN =========== */
@@ -401,6 +460,8 @@ int main(int argc /** The number of arguments, where the first one is always the
     printf("\n");
 
     tfctx* ctx = createCtx();
+    printf("Context created.\n");
+
     exec(ctx, prg);
     printf("Stack content:\n");
     printObject(ctx->stack);
