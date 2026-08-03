@@ -8,6 +8,7 @@ typedef struct p3 {
 
 #define NUMPOINTS 10000
 point Model[NUMPOINTS];
+point Rotated[NUMPOINTS];
 
 void clear(SDL_Surface* surface) {
     int height = surface->h;
@@ -58,21 +59,33 @@ void pixel(SDL_Surface* surface, int x, int y, int r, int g, int b) {
     pixels[y * pitch + x * 4 + 3] = 1;
 }
 
+void rotate(float time) {
+    float alpha = (time * (3.14 * 2) / 60) * 0.15;
+    for (int i = 0; i < NUMPOINTS; i++) {
+        // Rotate along the y axis
+        Rotated[i].x = Model[i].x * cos(alpha) + Model[i].z * sin(alpha);
+        Rotated[i].y = Model[i].y;
+        Rotated[i].z = -Model[i].x * sin(alpha) + Model[i].z * cos(alpha);
+    }
+}
 
-void draw(SDL_Surface* surface) {
+
+void draw(float time, SDL_Surface* surface) {
     int width = surface->w;
     int height = surface->h;
     int cx = width / 2;
     int cy = height / 2;
+
+    rotate(time);
 
     clear(surface);
     for (int i = 0; i < NUMPOINTS; i++) {
         // We are drawing a 3D object in a 2D plane. We keep the x and y but we divide by a z factor that simulates depth (aka the side closer to use looks bigger, the side further away looks smaller)
         // The zfactor should increase as the object gets closer.
         // We add 1 so that when it's 0, we keep the original depth.
-        float zfactor = 1 + (Model[i].z / 400);
-        float x = cx + Model[i].x / zfactor;
-        float y = cy + Model[i].y / zfactor;
+        float zfactor = 1 + (Rotated[i].z / 400);
+        float x = cx + Rotated[i].x / zfactor;
+        float y = cy + Rotated[i].y / zfactor;
 
         pixel(surface, x, y, 255, 255, 255);
     }
@@ -110,8 +123,9 @@ int main(int argc, char* argv[]) {
 
     create_model();
     int running = 1;
+    float time = 0;
     while (running) {
-        draw(surface);
+        draw(time, surface);
         SDL_UpdateWindowSurface(window);
 
         // Main loop – wait for quit event
@@ -121,6 +135,7 @@ int main(int argc, char* argv[]) {
                 running = 0;
             }
         }
+        time++;
         SDL_Delay(16);
     }
 
