@@ -17,6 +17,17 @@ void clear(SDL_Surface* surface) {
     memset(fb, 0, pitch * height);
 }
 
+void fade(SDL_Surface* surface) {
+    int height = surface->h;
+    int pitch = surface->pitch;
+    uint8_t* fb = (uint8_t*)surface->pixels;
+    int numbytes = pitch * height;
+    for (int i = 0; i < numbytes; i++) {
+        if (fb[i] > 15) fb[i] -= 15;
+        else fb[i] = 0;
+    }
+}
+
 void create_model(void) {
 #if 0
     for (int i = 0; i < NUMPOINTS; i++) {
@@ -78,7 +89,8 @@ void draw(float time, SDL_Surface* surface) {
 
     rotate(time);
 
-    clear(surface);
+    fade(surface);
+
     for (int i = 0; i < NUMPOINTS; i++) {
         // We are drawing a 3D object in a 2D plane. We keep the x and y but we divide by a z factor that simulates depth (aka the side closer to use looks bigger, the side further away looks smaller)
         // The zfactor should increase as the object gets closer.
@@ -120,6 +132,8 @@ int main(int argc, char* argv[]) {
         SDL_Quit();
         return 1;
     }
+
+    clear(surface);
 
     create_model();
     int running = 1;
