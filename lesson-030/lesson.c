@@ -23,20 +23,19 @@ void fade(SDL_Surface* surface) {
     uint8_t* fb = (uint8_t*)surface->pixels;
     int numbytes = pitch * height;
     for (int i = 0; i < numbytes; i++) {
-        if (fb[i] > 15) fb[i] -= 15;
+        if (fb[i] > 30) fb[i] -= 30;
         else fb[i] = 0;
     }
 }
 
 void create_model(void) {
-#if 0
     for (int i = 0; i < NUMPOINTS; i++) {
         Model[i].x = -150 + rand() % 300;
         Model[i].y = -150 + rand() % 300;
         Model[i].z = -150 + rand() % 300;
     }
-#endif
 
+#if 0
     int i = 0;
     // We create 10_000 points (50*50). 
     for (float x = -50; x < 50; x++) {
@@ -55,6 +54,7 @@ void create_model(void) {
             if (i == NUMPOINTS) return;
         }
     }
+#endif
 }
 
 void pixel(SDL_Surface* surface, int x, int y, int r, int g, int b) {
