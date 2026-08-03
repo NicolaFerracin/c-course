@@ -2,8 +2,12 @@
 #include <stdint.h>
 #include <math.h>
 
+typedef struct p3 {
+    float x, y, z;
+} point;
 
 #define NUMPOINTS 10000
+point Model[NUMPOINTS];
 
 void clear(SDL_Surface* surface) {
     int height = surface->h;
@@ -12,23 +16,65 @@ void clear(SDL_Surface* surface) {
     memset(fb, 0, pitch * height);
 }
 
-void draw(SDL_Surface* surface) {
-    int width = surface->w;
-    int height = surface->h;
+void create_model(void) {
+#if 0
+    for (int i = 0; i < NUMPOINTS; i++) {
+        Model[i].x = -150 + rand() % 300;
+        Model[i].y = -150 + rand() % 300;
+        Model[i].z = -150 + rand() % 300;
+    }
+#endif
+
+    int i = 0;
+    // We create 10_000 points (50*50). 
+    for (float x = -50; x < 50; x++) {
+        for (float z = -50; z < 50; z++) {
+#if 0
+            // We then set the `y` to always the same value so it's a flat 2D plane.
+            int y = 10;
+#endif
+
+            // Nerdy math to generate some waves
+            float y = 10 + (sin(x / 100 * 3.14 * 5) * 5) + (cos(z / 100 * 3.14 * 5) * 5);
+            Model[i].x = x * 4;
+            Model[i].y = y * 4;
+            Model[i].z = z * 4;
+            i++;
+            if (i == NUMPOINTS) return;
+        }
+    }
+}
+
+void pixel(SDL_Surface* surface, int x, int y, int r, int g, int b) {
+    if (x < 0 || x >= surface->w) return;
+    if (y < 0 || y >= surface->h) return;
+
     int pitch = surface->pitch;
     uint8_t* pixels = (uint8_t*)surface->pixels;
 
-    for (int y = 0; y < height; ++y) {
-        for (int x = 0; x < width; ++x) {
-            uint8_t r = (x * 255) / width;
-            uint8_t g = (y * 255) / height;
-            uint8_t b = 128;
+    pixels[y * pitch + x * 4 + 0] = b;
+    pixels[y * pitch + x * 4 + 1] = g;
+    pixels[y * pitch + x * 4 + 2] = r;
+    pixels[y * pitch + x * 4 + 3] = 1;
+}
 
-            pixels[y * pitch + x * 4 + 0] = g;
-            pixels[y * pitch + x * 4 + 1] = b;
-            pixels[y * pitch + x * 4 + 2] = r;
-            pixels[y * pitch + x * 4 + 3] = 1;
-        }
+
+void draw(SDL_Surface* surface) {
+    int width = surface->w;
+    int height = surface->h;
+    int cx = width / 2;
+    int cy = height / 2;
+
+    clear(surface);
+    for (int i = 0; i < NUMPOINTS; i++) {
+        // We are drawing a 3D object in a 2D plane. We keep the x and y but we divide by a z factor that simulates depth (aka the side closer to use looks bigger, the side further away looks smaller)
+        // The zfactor should increase as the object gets closer.
+        // We add 1 so that when it's 0, we keep the original depth.
+        float zfactor = 1 + (Model[i].z / 400);
+        float x = cx + Model[i].x / zfactor;
+        float y = cy + Model[i].y / zfactor;
+
+        pixel(surface, x, y, 255, 255, 255);
     }
 }
 
@@ -62,7 +108,7 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    clear(surface);
+    create_model();
     int running = 1;
     while (running) {
         draw(surface);
