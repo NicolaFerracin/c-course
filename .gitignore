@@ -1,2 +1,6 @@
 *.out
 .editorconfig
+
+# Executables C programs
+toyforth
+lesson30
